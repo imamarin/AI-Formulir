@@ -152,6 +152,12 @@ if auth_mode == "OAuth2 Login":
             st.sidebar.error(f"❌ Gagal akses API: {e}")
 
         if st.sidebar.button("Logout"):
+            if "credentials" in st.session_state:
+                del st.session_state["credentials"]
+            if "sheet_client" in st.session_state:
+                del st.session_state["sheet_client"]
+            if "selected_spreadsheet" in st.session_state:
+                del st.session_state["selected_spreadsheet"]
             st.session_state.oauth_creds = None
             st.session_state.sheet_client = None
             st.session_state.spreadsheet_list = []
@@ -297,4 +303,5 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
 
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+
 
