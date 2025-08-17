@@ -42,7 +42,7 @@ PENTING: Hanya berikan response dalam format di atas!
 # -------------------------
 # Sidebar: Pilih Mode Autentikasi
 # -------------------------
-st.sidebar.header("🔑 Google Sheets Authentication")
+st.sidebar.header("🔑 Google Sheets Authentication1")
 auth_mode = st.sidebar.radio("Pilih metode login:", ["Service Account", "OAuth2 Login"])
 
 SHEET = None
@@ -163,6 +163,7 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
 
 
 
