@@ -160,7 +160,7 @@ if auth_mode == "OAuth2 Login":
 # -------------------------
 # Main App
 # -------------------------
-st.title("📄 Formulir Analyzer dengan Gemini + Google Sheets")
+st.title("📄 Kenan AI - Formulir Analyzer")
 
 uploaded_file = st.file_uploader("Upload gambar formulir (JPG/PNG)", type=["jpg", "jpeg", "png"])
 if uploaded_file:
@@ -223,3 +223,4 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
             else:
                 st.warning("⚠️ Google Sheet belum dipilih atau login belum selesai.")
+
