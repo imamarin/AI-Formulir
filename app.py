@@ -88,7 +88,7 @@ elif auth_mode == "OAuth2 Login":
                 },
                 scopes=scopes,
             )
-            auth_url, _ = flow.authorization_url(access_type="offline",include_granted_scopes="true",prompt="consent")
+            auth_url, _ = flow.authorization_url(prompt="consent")
 
             if st.sidebar.button("🔐 Login dengan Google"):
                 st.sidebar.write("Klik link di bawah untuk login:")
@@ -163,4 +163,5 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
 
