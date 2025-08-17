@@ -54,6 +54,8 @@ if "spreadsheet_list" not in st.session_state:
     st.session_state.spreadsheet_list = []
 if "selected_spreadsheet" not in st.session_state:
     st.session_state.selected_spreadsheet = None
+if "unique_column" not in st.session_state:
+    st.session_state.unique_column = None
 
 # -------------------------
 # Sidebar: Pilih Mode Autentikasi
@@ -116,24 +118,28 @@ if auth_mode == "OAuth2 Login":
                 files = results.get("files", [])
                 st.session_state.spreadsheet_list = files
 
-            # Pilihan selectbox
+            # Pilihan selectbox spreadsheet
             if st.session_state.spreadsheet_list:
                 spreadsheet_names = [f["name"] for f in st.session_state.spreadsheet_list]
                 choice = st.sidebar.selectbox("Pilih Spreadsheet:", ["-- pilih spreadsheet --"] + spreadsheet_names)
-            
+
                 if choice != "-- pilih spreadsheet --":
                     chosen = next(f for f in st.session_state.spreadsheet_list if f["name"] == choice)
                     st.session_state.selected_spreadsheet = chosen
-            
-                    # --- Ambil header kolom ---
+
+                    # Ambil header kolom
                     try:
                         client = st.session_state.sheet_client
                         sheet = client.open_by_key(chosen["id"]).sheet1
                         all_records = sheet.get_all_values()
                         headers = all_records[0] if all_records else []
-            
+
                         if headers:
-                            unique_column = st.sidebar.selectbox("Pilih Kolom Unik:", headers, index=headers.index("NISN") if "NISN" in headers else 0)
+                            unique_column = st.sidebar.selectbox(
+                                "Pilih Kolom Unik:",
+                                headers,
+                                index=headers.index("NISN") if "NISN" in headers else 0
+                            )
                             st.session_state.unique_column = unique_column
                         else:
                             st.sidebar.warning("Spreadsheet kosong, tidak ada header kolom.")
@@ -148,6 +154,7 @@ if auth_mode == "OAuth2 Login":
             st.session_state.sheet_client = None
             st.session_state.spreadsheet_list = []
             st.session_state.selected_spreadsheet = None
+            st.session_state.unique_column = None
             st.rerun()
 
     else:
@@ -185,8 +192,7 @@ if uploaded_file:
 if uploaded_file and st.button("🔍 Analisa Formulir"):
     mime = "image/jpeg" if uploaded_file.type in ["image/jpg", "image/jpeg"] else "image/png"
     base64_str = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
-    unique_column = st.session_state.get("unique_column", None)
-    
+
     with st.spinner("Melakukan Analisa..."):
         payload = {
             "contents": [
@@ -198,8 +204,8 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                 }
             ]
         }
-        headers = {"Content-Type": "application/json"}
-        resp = requests.post(GEMINI_URL, headers=headers, data=json.dumps(payload))
+        headers_req = {"Content-Type": "application/json"}
+        resp = requests.post(GEMINI_URL, headers=headers_req, data=json.dumps(payload))
 
     if resp.status_code != 200:
         st.error(f"❌ Gagal Analisa: {resp.text}")
@@ -210,55 +216,69 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
         except Exception:
             output_text = "ERROR: Response tidak sesuai format."
 
-        st.subheader("📌 Hasil Analisa")
-        st.text(output_text)
+        # -------------------------
+        # Analisa berdasarkan header kolom
+        # -------------------------
+        rows = output_text.split("\n")
+        data_dict = {}
+        for row in rows:
+            if ": " in row:
+                key, value = row.split(": ", 1)
+                data_dict[key.strip()] = value.strip()
 
+        if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
+            try:
+                client = st.session_state.sheet_client
+                sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
+                all_records = sheet.get_all_values()
+                headers = all_records[0] if all_records else []
+
+                if headers:
+                    analyzed_text = "\n".join([f"{h}: {data_dict.get(h, '')}" for h in headers])
+                else:
+                    analyzed_text = output_text
+            except Exception as e:
+                analyzed_text = output_text + f"\n\n(⚠️ Gagal membaca header: {e})"
+        else:
+            analyzed_text = output_text
+
+        st.subheader("📌 Hasil Analisa")
+        st.text(analyzed_text)
+
+        # -------------------------
+        # Simpan ke Google Sheets
+        # -------------------------
         if "ERROR" in output_text:
             st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
         else:
             if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
-                    try:
-                        rows = output_text.split("\n")
-                        data_dict = {}
-                        for row in rows:
-                            if ": " in row:
-                                key, value = row.split(": ", 1)
-                                data_dict[key.strip()] = value.strip()
+                try:
+                    client = st.session_state.sheet_client
+                    sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
+                    all_records = sheet.get_all_values()
+                    headers = all_records[0] if all_records else []
+                    unique_column = st.session_state.get("unique_column", None)
 
-                        client = st.session_state.sheet_client
-                        sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
+                    if not headers:
+                        st.error("❌ Spreadsheet tidak memiliki header.")
+                    elif not unique_column or unique_column not in headers:
+                        st.error(f"❌ Kolom unik '{unique_column}' tidak ditemukan di spreadsheet!")
+                    else:
+                        col_index = headers.index(unique_column)
+                        values = [r[col_index] for r in all_records[1:]] if len(all_records) > 1 else []
 
-                        # Ambil semua data
-                        all_records = sheet.get_all_values()
-                        headers = all_records[0] if all_records else []
+                        # Buat row baru sesuai urutan header
+                        new_row = [data_dict.get(h, "") for h in headers]
 
-                        if unique_column not in headers:
-                            st.error(f"❌ Kolom '{unique_column}' tidak ditemukan di spreadsheet!")
+                        key_value = data_dict.get(unique_column, "")
+
+                        if key_value in values:
+                            row_index = values.index(key_value) + 2  # +2 karena ada header
+                            sheet.update(f"A{row_index}:{chr(64+len(headers))}{row_index}", [new_row])
+                            st.success(f"✅ Data dengan {unique_column} '{key_value}' berhasil DIUPDATE!")
                         else:
-                            col_index = headers.index(unique_column)  # index kolom unik
-                            values = [r[col_index] for r in all_records[1:]] if len(all_records) > 1 else []
+                            sheet.append_row(new_row)
+                            st.success(f"✅ Data baru berhasil ditambahkan (kolom unik: {unique_column}).")
 
-                            new_row = [
-                                data_dict.get("NISN", ""),
-                                data_dict.get("NAMA LENGKAP", ""),
-                                data_dict.get("TEMPAT LAHIR", ""),
-                                data_dict.get("TANGGAL LAHIR", ""),
-                                data_dict.get("Program Keahlian 1", ""),
-                                data_dict.get("Program Keahlian 2", ""),
-                            ]
-
-                            key_value = data_dict.get(unique_column, "")
-
-                            if key_value in values:
-                                row_index = values.index(key_value) + 2  # +2 karena ada header
-                                sheet.update(f"A{row_index}:F{row_index}", [new_row])
-                                st.success(f"✅ Data dengan {unique_column} '{key_value}' berhasil DIUPDATE!")
-                            else:
-                                sheet.append_row(new_row)
-                                st.success(f"✅ Data baru berhasil ditambahkan (kolom unik: {unique_column}).")
-
-                    except Exception as e:
-                        st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
-
-
-
+                except Exception as e:
+                    st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
