@@ -12,7 +12,7 @@ import os
 # -------------------------
 # Konfigurasi Gemini API
 # -------------------------
-API_KEY = "AIzaSyA0Gp87OAEDWyebqQCxdoawLcKBEKp_2tc"  # ganti dengan API key Gemini Anda
+API_KEY = st.secrets["google"]["api_key"]  # ganti dengan API key Gemini Anda
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
 
 PROMPT = """
@@ -165,6 +165,7 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
 
 
 
