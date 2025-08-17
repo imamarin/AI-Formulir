@@ -67,7 +67,7 @@ elif auth_mode == "OAuth2 Login":
     # client_secret = st.sidebar.text_input("Client Secret", placeholder="YOUR_CLIENT_SECRET", type="password")
     # spreadsheet_id = st.sidebar.text_input("Spreadsheet ID", placeholder="Masukkan Spreadsheet ID di sini")
 
-    client_id = "1089172826375-prf8vjqggd1atutfeba4c861udb0kbij.apps.googleusercontent.com"
+    client_id = "476601797600-pnuqe4qs74gk9kibl817nedksbvv8njo.apps.googleusercontent.com"
     client_secret = "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"
 
     if client_id and client_secret:
@@ -163,5 +163,6 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
 
 
