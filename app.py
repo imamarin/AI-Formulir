@@ -67,9 +67,8 @@ elif auth_mode == "OAuth2 Login":
     # client_secret = st.sidebar.text_input("Client Secret", placeholder="YOUR_CLIENT_SECRET", type="password")
     # spreadsheet_id = st.sidebar.text_input("Spreadsheet ID", placeholder="Masukkan Spreadsheet ID di sini")
 
-    client_id = "476601797600-pnuqe4qs74gk9kibl817nedksbvv8njo.apps.googleusercontent.com"
-    client_secret = "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"
-
+    client_id = st.secrets["google"]["client_id"]
+    client_secret = st.secrets["google"]["client_secret"]
     if client_id and client_secret:
         redirect_uri = "https://kenan-ai-generate-formulir.streamlit.app/"
         scopes = ["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile","https://www.googleapis.com/auth/spreadsheets"]
@@ -79,12 +78,12 @@ elif auth_mode == "OAuth2 Login":
             flow = Flow.from_client_config(
                 {
                     "web":{
-                        "client_id":"476601797600-pnuqe4qs74gk9kibl817nedksbvv8njo.apps.googleusercontent.com",
+                        "client_id":st.secrets["google"]["client_id"],
                         "project_id":"api-formulir",
                         "auth_uri":"https://accounts.google.com/o/oauth2/auth",
                         "token_uri":"https://oauth2.googleapis.com/token",
                         "auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
-                        "client_secret":"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",
+                        "client_secret":st.secrets["google"]["client_secret"],
                         "redirect_uris":["https://kenan-ai-generate-formulir.streamlit.app/"]
                     }
                 },
@@ -166,6 +165,7 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
 
 
 
