@@ -123,6 +123,7 @@ if auth_mode == "OAuth2 Login":
                 if choice != "-- pilih spreadsheet --":
                     chosen = next(f for f in st.session_state.spreadsheet_list if f["name"] == choice)
                     st.session_state.selected_spreadsheet = chosen
+                unique_column = st.sidebar.text_input("Kolom Unik (contoh: NISN atau NAMA LENGKAP)", value="NISN")
 
         except Exception as e:
             st.sidebar.error(f"❌ Gagal akses API: {e}")
@@ -200,27 +201,47 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
             st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
         else:
             if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
-                try:
-                    rows = output_text.split("\n")
-                    data_dict = {}
-                    for row in rows:
-                        if ": " in row:
-                            key, value = row.split(": ", 1)
-                            data_dict[key.strip()] = value.strip()
+                    try:
+                        rows = output_text.split("\n")
+                        data_dict = {}
+                        for row in rows:
+                            if ": " in row:
+                                key, value = row.split(": ", 1)
+                                data_dict[key.strip()] = value.strip()
 
-                    client = st.session_state.sheet_client
-                    sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
-                    sheet.append_row([
-                        data_dict.get("NISN", ""),
-                        data_dict.get("NAMA LENGKAP", ""),
-                        data_dict.get("TEMPAT LAHIR", ""),
-                        data_dict.get("TANGGAL LAHIR", ""),
-                        data_dict.get("Program Keahlian 1", ""),
-                        data_dict.get("Program Keahlian 2", ""),
-                    ])
-                    st.success(f"✅ Data berhasil disimpan ke {st.session_state.selected_spreadsheet['name']}!")
-                except Exception as e:
-                    st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
-            else:
-                st.warning("⚠️ Google Sheet belum dipilih atau login belum selesai.")
+                        client = st.session_state.sheet_client
+                        sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
+
+                        # Ambil semua data
+                        all_records = sheet.get_all_values()
+                        headers = all_records[0] if all_records else []
+
+                        if unique_column not in headers:
+                            st.error(f"❌ Kolom '{unique_column}' tidak ditemukan di spreadsheet!")
+                        else:
+                            col_index = headers.index(unique_column)  # index kolom unik
+                            values = [r[col_index] for r in all_records[1:]] if len(all_records) > 1 else []
+
+                            new_row = [
+                                data_dict.get("NISN", ""),
+                                data_dict.get("NAMA LENGKAP", ""),
+                                data_dict.get("TEMPAT LAHIR", ""),
+                                data_dict.get("TANGGAL LAHIR", ""),
+                                data_dict.get("Program Keahlian 1", ""),
+                                data_dict.get("Program Keahlian 2", ""),
+                            ]
+
+                            key_value = data_dict.get(unique_column, "")
+
+                            if key_value in values:
+                                row_index = values.index(key_value) + 2  # +2 karena ada header
+                                sheet.update(f"A{row_index}:F{row_index}", [new_row])
+                                st.success(f"✅ Data dengan {unique_column} '{key_value}' berhasil DIUPDATE!")
+                            else:
+                                sheet.append_row(new_row)
+                                st.success(f"✅ Data baru berhasil ditambahkan (kolom unik: {unique_column}).")
+
+                    except Exception as e:
+                        st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+
 
