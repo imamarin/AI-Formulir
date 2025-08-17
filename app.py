@@ -82,7 +82,7 @@ if auth_mode == "OAuth2 Login":
             {
                 "web": {
                     "client_id": CLIENT_ID,
-                    "project_id": "streamlit-oauth",
+                    "project_id": "api-formulir",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
@@ -124,7 +124,7 @@ if auth_mode == "OAuth2 Login":
             {
                 "web": {
                     "client_id": CLIENT_ID,
-                    "project_id": "streamlit-oauth",
+                    "project_id": "api-formulir",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
@@ -212,4 +212,5 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
             else:
                 st.warning("⚠️ Google Sheet belum dikonfigurasi atau belum login.")
+
 
