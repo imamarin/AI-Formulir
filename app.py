@@ -22,20 +22,9 @@ GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.
 PROMPT = """
 Analisa formulir pada gambar ini dan berikan informasi dalam format yang PERSIS seperti ini:
 
-NISN: [nomor nisn dari formulir]
-NAMA LENGKAP: [Nama Lengkap]
-TEMPAT LAHIR: [tempat lahir]
-TANGGAL LAHIR: [tanggal lahir jika terlihat, atau 2025-06-19]
-Program Keahlian 1: [singkatan jurusan]
-Program Keahlian 2: [singkatan jurusan]
-
-Contoh response yang benar:
-NISN: 01230303
-NAMA LENGKAP: IMAM AMIRULLOH
-TEMPAT LAHIR: TASIKMALAYA
-TANGGAL LAHIR: 12-03-1991
-Program Keahlian 1: TJKT
-Program Keahlian 2: PPLG
+Kolom1: [...]
+Kolom2: [...]
+Kolom3: [...]
 
 Jika formulir tidak jelas atau tidak bisa dibaca, berikan:
 ERROR: formulir tidak dapat dibaca dengan jelas
@@ -282,3 +271,4 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
 
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+
