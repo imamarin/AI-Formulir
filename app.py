@@ -61,31 +61,13 @@ if "oauth_creds" not in st.session_state:
 # Sidebar: Pilih Mode Autentikasi
 # -------------------------
 st.sidebar.header("🔑 Google Sheets Authentication")
-auth_mode = st.sidebar.radio("Pilih metode login:", ["Service Account", "OAuth2 Login"])
+auth_mode = st.sidebar.radio("Pilih metode login:", ["OAuth2 Login"])
 
 SHEET = None
 spreadsheet_id = st.sidebar.text_input("Spreadsheet ID", placeholder="Masukkan Spreadsheet ID di sini")
 
 # ---------- SERVICE ACCOUNT ----------
-if auth_mode == "Service Account":
-    uploaded_cred = st.sidebar.file_uploader("Upload service_account.json", type=["json"])
-    if uploaded_cred and spreadsheet_id:
-        try:
-            creds_json = json.load(uploaded_cred)
-            scope = [
-                "https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive"
-            ]
-            sa_creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
-            client = gspread.authorize(sa_creds)
-            SHEET = client.open_by_key(spreadsheet_id).sheet1
-            st.session_state.sheet_client = client
-            st.sidebar.success("✅ Terhubung (Service Account)")
-        except Exception as e:
-            st.sidebar.error(f"❌ Gagal autentikasi: {e}")
-
-# ---------- OAUTH2 LOGIN ----------
-else:
+if auth_mode == "OAuth2 Login":
     scopes = [
         "openid",
         "https://www.googleapis.com/auth/userinfo.email",
@@ -230,3 +212,4 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
             else:
                 st.warning("⚠️ Google Sheet belum dikonfigurasi atau belum login.")
+
