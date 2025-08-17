@@ -12,12 +12,6 @@ import pickle
 # -------------------------
 # Konfigurasi (secrets)
 # -------------------------
-# Contoh secrets.toml:
-# [google]
-# api_key = "GEMINI_API_KEY"
-# client_id = "xxx.apps.googleusercontent.com"
-# client_secret = "yyy"
-# redirect_uri = "https://kenan-ai-generate-formulir.streamlit.app/"  # atau http://localhost:8501/
 API_KEY = st.secrets["google"]["api_key"]
 CLIENT_ID = st.secrets["google"]["client_id"]
 CLIENT_SECRET = st.secrets["google"]["client_secret"]
@@ -53,9 +47,13 @@ PENTING: Hanya berikan response dalam format di atas!
 # Session state
 # -------------------------
 if "sheet_client" not in st.session_state:
-    st.session_state.sheet_client = None          # gspread client (Service Account / OAuth)
+    st.session_state.sheet_client = None
 if "oauth_creds" not in st.session_state:
-    st.session_state.oauth_creds = None           # pickle of google.oauth2.credentials.Credentials
+    st.session_state.oauth_creds = None
+if "spreadsheet_list" not in st.session_state:
+    st.session_state.spreadsheet_list = []
+if "selected_spreadsheet" not in st.session_state:
+    st.session_state.selected_spreadsheet = None
 
 # -------------------------
 # Sidebar: Pilih Mode Autentikasi
@@ -64,18 +62,17 @@ st.sidebar.header("🔑 Google Sheets Authentication")
 auth_mode = st.sidebar.radio("Pilih metode login:", ["OAuth2 Login"])
 
 SHEET = None
-spreadsheet_id = st.sidebar.text_input("Spreadsheet ID", placeholder="Masukkan Spreadsheet ID di sini")
 
-# ---------- SERVICE ACCOUNT ----------
+# ---------- OAuth2 Login ----------
 if auth_mode == "OAuth2 Login":
     scopes = [
         "openid",
         "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/userinfo.profile",
-        "https://www.googleapis.com/auth/spreadsheets"
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.metadata.readonly"
     ]
 
-    # 1) Jika ada code di URL -> tukar token & simpan ke session
     qp = st.query_params
     if "code" in qp and st.session_state.oauth_creds is None:
         flow = Flow.from_client_config(
@@ -95,31 +92,49 @@ if auth_mode == "OAuth2 Login":
         )
         flow.fetch_token(code=qp["code"])
         creds = flow.credentials
-        # simpan ke session secara aman (pickle)
         st.session_state.oauth_creds = pickle.dumps(creds)
         st.rerun()
 
-    # 2) Jika sudah login (punya creds), buat gspread client via googleapiclient
     if st.session_state.oauth_creds is not None:
         creds: Credentials = pickle.loads(st.session_state.oauth_creds)
         st.sidebar.success("✅ Sudah login dengan Google")
+
         try:
-            # Buat Sheets API client untuk cek akses
             sheets_service = build("sheets", "v4", credentials=creds)
-            # Atau pakai gspread dengan oauth creds
+            drive_service = build("drive", "v3", credentials=creds)
+
             oauth_client = gspread.authorize(creds)
             st.session_state.sheet_client = oauth_client
-            if spreadsheet_id:
-                SHEET = oauth_client.open_by_key(spreadsheet_id).sheet1
+
+            # Ambil daftar spreadsheet user
+            if not st.session_state.spreadsheet_list:
+                results = drive_service.files().list(
+                    q="mimeType='application/vnd.google-apps.spreadsheet'",
+                    fields="files(id, name)",
+                    pageSize=50
+                ).execute()
+                files = results.get("files", [])
+                st.session_state.spreadsheet_list = files
+
+            # Pilihan selectbox
+            if st.session_state.spreadsheet_list:
+                spreadsheet_names = [f["name"] for f in st.session_state.spreadsheet_list]
+                choice = st.sidebar.selectbox("Pilih Spreadsheet:", ["-- pilih spreadsheet --"] + spreadsheet_names)
+                if choice != "-- pilih spreadsheet --":
+                    chosen = next(f for f in st.session_state.spreadsheet_list if f["name"] == choice)
+                    st.session_state.selected_spreadsheet = chosen
+
         except Exception as e:
-            st.sidebar.error(f"❌ Gagal membuat client Sheets: {e}")
+            st.sidebar.error(f"❌ Gagal akses API: {e}")
 
         if st.sidebar.button("Logout"):
             st.session_state.oauth_creds = None
             st.session_state.sheet_client = None
+            st.session_state.spreadsheet_list = []
+            st.session_state.selected_spreadsheet = None
             st.rerun()
+
     else:
-        # 3) Belum login -> tampilkan tombol login
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -140,7 +155,6 @@ if auth_mode == "OAuth2 Login":
             include_granted_scopes="true",
             prompt="consent",
         )
-        # Link langsung (Streamlit akan membuka di tab baru)
         st.sidebar.markdown(f"[🔐 Login dengan Google]({auth_url})")
 
 # -------------------------
@@ -153,7 +167,6 @@ if uploaded_file:
     st.image(uploaded_file, caption="Formulir yang diupload", use_column_width=True)
 
 if uploaded_file and st.button("🔍 Analisa Formulir"):
-    # deteksi mime dari file yang diupload
     mime = "image/jpeg" if uploaded_file.type in ["image/jpg", "image/jpeg"] else "image/png"
     base64_str = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
 
@@ -168,7 +181,6 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                 }
             ]
         }
-
         headers = {"Content-Type": "application/json"}
         resp = requests.post(GEMINI_URL, headers=headers, data=json.dumps(payload))
 
@@ -184,11 +196,10 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
         st.subheader("📌 Hasil Analisa")
         st.text(output_text)
 
-        # Simpan ke Google Sheet jika tersedia
         if "ERROR" in output_text:
             st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
         else:
-            if spreadsheet_id and st.session_state.sheet_client:
+            if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
                 try:
                     rows = output_text.split("\n")
                     data_dict = {}
@@ -198,7 +209,7 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                             data_dict[key.strip()] = value.strip()
 
                     client = st.session_state.sheet_client
-                    sheet = client.open_by_key(spreadsheet_id).sheet1
+                    sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
                     sheet.append_row([
                         data_dict.get("NISN", ""),
                         data_dict.get("NAMA LENGKAP", ""),
@@ -207,11 +218,8 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                         data_dict.get("Program Keahlian 1", ""),
                         data_dict.get("Program Keahlian 2", ""),
                     ])
-                    st.success("✅ Data berhasil disimpan ke Google Sheets!")
+                    st.success(f"✅ Data berhasil disimpan ke {st.session_state.selected_spreadsheet['name']}!")
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
             else:
-                st.warning("⚠️ Google Sheet belum dikonfigurasi atau belum login.")
-
-
-
+                st.warning("⚠️ Google Sheet belum dipilih atau login belum selesai.")
