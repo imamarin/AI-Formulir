@@ -71,7 +71,7 @@ elif auth_mode == "OAuth2 Login":
     client_secret = "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"
 
     if client_id and client_secret:
-        redirect_uri = "http://localhost:8501/"
+        redirect_uri = "https://kenan-ai-generate-formulir.streamlit.app/"
         scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 
         if "oauth_credentials" not in st.session_state:
@@ -163,3 +163,4 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
