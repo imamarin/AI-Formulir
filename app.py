@@ -80,9 +80,10 @@ elif auth_mode == "OAuth2 Login":
                 {
                     "web":{
                         "client_id":"476601797600-pnuqe4qs74gk9kibl817nedksbvv8njo.apps.googleusercontent.com",
-                        "project_id":"api-formulir","auth_uri":"https://accounts.google.com/o/oauth2/auth",
-                        "token_uri":"https://oauth2.googleapis.com/token",
-                        "auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
+                        "project_id":"api-formulir",
+                        "auth_uri":"https://accounts.google.com/o/oauth2/auth",
+                        # "token_uri":"https://oauth2.googleapis.com/token",
+                        # "auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
                         "client_secret":"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",
                         "redirect_uris":["https://kenan-ai-generate-formulir.streamlit.app/"]
                     }
@@ -165,6 +166,7 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
 
 
 
