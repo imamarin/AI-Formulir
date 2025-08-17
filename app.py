@@ -32,6 +32,19 @@ ERROR: formulir tidak dapat dibaca dengan jelas
 PENTING: Hanya berikan response dalam format di atas!
 """
 
+# Buat prompt dinamis berdasarkan header
+def build_dynamic_prompt(headers):
+    prompt = "Analisa formulir pada gambar ini dan berikan informasi dalam format yang PERSIS seperti ini:\n\n"
+    for h in headers:
+        prompt += f"{h}: [{h.lower()} dari formulir]\n"
+    prompt += """
+Jika formulir tidak jelas atau tidak bisa dibaca, berikan:
+ERROR: formulir tidak dapat dibaca dengan jelas
+
+PENTING: Hanya berikan response dalam format di atas!
+"""
+    return prompt
+
 # -------------------------
 # Session state
 # -------------------------
@@ -183,11 +196,24 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
     base64_str = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
 
     with st.spinner("Melakukan Analisa..."):
+        # kalau ada header dari spreadsheet, pakai prompt dinamis
+        if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
+            client = st.session_state.sheet_client
+            sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
+            all_records = sheet.get_all_values()
+            headers = all_records[0] if all_records else []
+            if headers:
+                prompt_to_use = build_dynamic_prompt(headers)
+            else:
+                prompt_to_use = PROMPT  # fallback ke prompt default
+        else:
+            prompt_to_use = PROMPT  # kalau belum pilih spreadsheet
+            
         payload = {
             "contents": [
                 {
                     "parts": [
-                        {"text": PROMPT},
+                        {"text": prompt_to_use},
                         {"inlineData": {"mimeType": mime, "data": base64_str}},
                     ]
                 }
