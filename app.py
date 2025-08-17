@@ -97,7 +97,7 @@ if auth_mode == "OAuth2 Login":
         creds = flow.credentials
         # simpan ke session secara aman (pickle)
         st.session_state.oauth_creds = pickle.dumps(creds)
-        st.experimental_rerun()
+        st.rerun()
 
     # 2) Jika sudah login (punya creds), buat gspread client via googleapiclient
     if st.session_state.oauth_creds is not None:
@@ -117,7 +117,7 @@ if auth_mode == "OAuth2 Login":
         if st.sidebar.button("Logout"):
             st.session_state.oauth_creds = None
             st.session_state.sheet_client = None
-            st.experimental_rerun()
+            st.rerun()
     else:
         # 3) Belum login -> tampilkan tombol login
         flow = Flow.from_client_config(
@@ -212,5 +212,6 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
             else:
                 st.warning("⚠️ Google Sheet belum dikonfigurasi atau belum login.")
+
 
 
