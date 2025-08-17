@@ -158,11 +158,12 @@ if auth_mode == "OAuth2 Login":
                 del st.session_state["sheet_client"]
             if "selected_spreadsheet" in st.session_state:
                 del st.session_state["selected_spreadsheet"]
-            st.session_state.oauth_creds = None
-            st.session_state.sheet_client = None
-            st.session_state.spreadsheet_list = []
-            st.session_state.selected_spreadsheet = None
-            st.session_state.unique_column = None
+            st.session_state.clear()
+            # st.session_state.oauth_creds = None
+            # st.session_state.sheet_client = None
+            # st.session_state.spreadsheet_list = []
+            # st.session_state.selected_spreadsheet = None
+            # st.session_state.unique_column = None
             st.rerun()
 
     else:
@@ -303,5 +304,6 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
 
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+
 
 
