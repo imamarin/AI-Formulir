@@ -71,22 +71,24 @@ elif auth_mode == "OAuth2 Login":
     client_secret = "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"
 
     if client_id and client_secret:
-        redirect_uri = "https://kenan-ai-generate-formulir.streamlit.app"
+        redirect_uri = "https://kenan-ai-generate-formulir.streamlit.app/"
         scopes = ["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile","https://www.googleapis.com/auth/spreadsheets"]
 
         if "oauth_credentials" not in st.session_state:
             # Step 1: buat link login
             flow = Flow.from_client_config(
-                {
-                    "web": {
-                        "client_id": client_id,
-                        "client_secret": client_secret,
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                        "redirect_uris": [redirect_uri],
-                    }
-                },
+                "client_secret_476601797600-pnuqe4qs74gk9kibl817nedksbvv8njo.apps.googleusercontent.com.json,
+                # {
+                #     "web": {
+                #         "client_id": client_id,
+                #         "client_secret": client_secret,
+                #         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                #         "token_uri": "https://oauth2.googleapis.com/token",
+                #         "redirect_uris": [redirect_uri],
+                #     }
+                # },
                 scopes=scopes,
+                redirect_uri=redirect_uri
             )
             auth_url, _ = flow.authorization_url(prompt="consent")
 
@@ -163,6 +165,7 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
 
 
 
