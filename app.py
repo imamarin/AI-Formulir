@@ -120,10 +120,25 @@ if auth_mode == "OAuth2 Login":
             if st.session_state.spreadsheet_list:
                 spreadsheet_names = [f["name"] for f in st.session_state.spreadsheet_list]
                 choice = st.sidebar.selectbox("Pilih Spreadsheet:", ["-- pilih spreadsheet --"] + spreadsheet_names)
+            
                 if choice != "-- pilih spreadsheet --":
                     chosen = next(f for f in st.session_state.spreadsheet_list if f["name"] == choice)
                     st.session_state.selected_spreadsheet = chosen
-                unique_column = st.sidebar.text_input("Kolom Unik (contoh: NISN atau NAMA LENGKAP)", value="NISN")
+            
+                    # --- Ambil header kolom ---
+                    try:
+                        client = st.session_state.sheet_client
+                        sheet = client.open_by_key(chosen["id"]).sheet1
+                        all_records = sheet.get_all_values()
+                        headers = all_records[0] if all_records else []
+            
+                        if headers:
+                            unique_column = st.sidebar.selectbox("Pilih Kolom Unik:", headers, index=headers.index("NISN") if "NISN" in headers else 0)
+                            st.session_state.unique_column = unique_column
+                        else:
+                            st.sidebar.warning("Spreadsheet kosong, tidak ada header kolom.")
+                    except Exception as e:
+                        st.sidebar.error(f"❌ Gagal mengambil header: {e}")
 
         except Exception as e:
             st.sidebar.error(f"❌ Gagal akses API: {e}")
@@ -170,8 +185,9 @@ if uploaded_file:
 if uploaded_file and st.button("🔍 Analisa Formulir"):
     mime = "image/jpeg" if uploaded_file.type in ["image/jpg", "image/jpeg"] else "image/png"
     base64_str = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
-
-    with st.spinner("Mengirim ke Gemini API..."):
+    unique_column = st.session_state.get("unique_column", None)
+    
+    with st.spinner("Melakukan Analisa..."):
         payload = {
             "contents": [
                 {
@@ -186,7 +202,7 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
         resp = requests.post(GEMINI_URL, headers=headers, data=json.dumps(payload))
 
     if resp.status_code != 200:
-        st.error(f"❌ Gagal request ke Gemini API: {resp.text}")
+        st.error(f"❌ Gagal Analisa: {resp.text}")
     else:
         try:
             result = resp.json()
@@ -243,5 +259,6 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
 
                     except Exception as e:
                         st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+
 
 
