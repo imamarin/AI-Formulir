@@ -77,7 +77,7 @@ elif auth_mode == "OAuth2 Login":
         if "oauth_credentials" not in st.session_state:
             # Step 1: buat link login
             flow = Flow.from_client_config(
-                "client_secret_476601797600-pnuqe4qs74gk9kibl817nedksbvv8njo.apps.googleusercontent.com.json,
+                "client_secret_476601797600-pnuqe4qs74gk9kibl817nedksbvv8njo.apps.googleusercontent.com.json",
                 # {
                 #     "web": {
                 #         "client_id": client_id,
@@ -165,6 +165,7 @@ if uploaded_file:
                     st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
             else:
                 st.error(f"❌ Gagal request ke Gemini API: {response.text}")
+
 
 
 
