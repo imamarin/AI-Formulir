@@ -68,6 +68,12 @@ auth_mode = st.sidebar.radio("Pilih metode login:", ["OAuth2 Login"])
 SHEET = None
 
 # ---------- OAuth2 Login ----------
+
+def get_credentials():
+    if "oauth_creds" in st.session_state:
+        return pickle.loads(st.session_state.oauth_creds)
+    return None
+    
 if auth_mode == "OAuth2 Login":
     scopes = [
         "openid",
@@ -78,6 +84,7 @@ if auth_mode == "OAuth2 Login":
     ]
 
     qp = st.query_params
+    creds = get_credentials()
     if "code" in qp and st.session_state.oauth_creds is None:
         flow = Flow.from_client_config(
             {
@@ -304,6 +311,7 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
 
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+
 
 
 
