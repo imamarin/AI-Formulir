@@ -202,9 +202,13 @@ if auth_mode == "OAuth2 Login":
 # -------------------------
 st.title("📄 Kenan AI - Formulir Analyzer")
 
-# Tambah di atas untuk inisialisasi
+# Insialisasi state
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
+if "show_preview" not in st.session_state:
+    st.session_state.show_preview = True
+if "analysis_done" not in st.session_state:
+    st.session_state.analysis_done = False    
     
 uploaded_files = st.file_uploader(
     "Upload hingga 5 gambar formulir (JPG/PNG)", 
@@ -212,10 +216,6 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True,
     key=f"uploader_{st.session_state.uploader_key}"
 )
-
-# Reset flag kalau upload ulang
-if uploaded_files:
-    st.session_state.analysis_done = False
     
 if uploaded_files and not st.session_state.get("analysis_done"):
     if len(uploaded_files) > 5:
@@ -305,11 +305,10 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
                 except Exception as e:
                     st.error(f"❌ Gagal simpan {uploaded_file.name}: {e}")
 
-    # Set flag biar gambar hilang
-    st.session_state.analysis_done = True 
-
-    # Clear uploader → ganti key
-    st.session_state.uploader_key += 1 
+    # ✅ Setelah analisa selesai
+    st.session_state.analysis_done = True  
+    st.session_state.uploader_key += 1  # reset file uploader
+    st.session_state.show_preview = False
     
     # -------------------------
     # Output
@@ -321,6 +320,7 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
     else:
         df = pd.DataFrame(results_data)
         st.dataframe(df, use_container_width=True)
+
 
 
 
