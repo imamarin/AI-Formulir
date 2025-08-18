@@ -8,6 +8,7 @@ from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 import pickle
+import pandas as pd
 
 # -------------------------
 # Konfigurasi (secrets)
@@ -63,13 +64,11 @@ if "unique_column" not in st.session_state:
 # Sidebar: Pilih Mode Autentikasi
 # -------------------------
 st.sidebar.header("🔑 Google Sheets Authentication")
-# auth_mode = st.sidebar.radio("Pilih metode login:", ["OAuth2 Login"])
 auth_mode = "OAuth2 Login"
 
 SHEET = None
 
 # ---------- OAuth2 Login ----------
-
 def get_credentials():
     if "oauth_creds" in st.session_state:
         return pickle.loads(st.session_state.oauth_creds)
@@ -163,11 +162,6 @@ if auth_mode == "OAuth2 Login":
         if st.sidebar.button("Logout"):
             st.session_state.clear()
             st.query_params.clear() 
-            # st.session_state.oauth_creds = None
-            # st.session_state.sheet_client = None
-            # st.session_state.spreadsheet_list = []
-            # st.session_state.selected_spreadsheet = None
-            # st.session_state.unique_column = None
             st.rerun()
 
     else:
@@ -191,7 +185,6 @@ if auth_mode == "OAuth2 Login":
             include_granted_scopes="true",
             prompt="consent",
         )
-        #st.sidebar.markdown(f"[🔐 Login dengan Google]({auth_url})")    
         st.sidebar.markdown(
             f"""
             <a href='{auth_url}'>
@@ -209,53 +202,64 @@ if auth_mode == "OAuth2 Login":
 # -------------------------
 st.title("📄 Kenan AI - Formulir Analyzer")
 
-uploaded_file = st.file_uploader("Upload gambar formulir (JPG/PNG)", type=["jpg", "jpeg", "png"])
-if uploaded_file:
-    st.image(uploaded_file, caption="Formulir yang diupload", use_column_width=True)
+uploaded_files = st.file_uploader(
+    "Upload hingga 5 gambar formulir (JPG/PNG)", 
+    type=["jpg", "jpeg", "png"], 
+    accept_multiple_files=True
+)
 
-if uploaded_file and st.button("🔍 Analisa Formulir"):
-    mime = "image/jpeg" if uploaded_file.type in ["image/jpg", "image/jpeg"] else "image/png"
-    base64_str = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
-
-    with st.spinner("Melakukan Analisa..."):
-        # kalau ada header dari spreadsheet, pakai prompt dinamis
-        if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
-            client = st.session_state.sheet_client
-            sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
-            all_records = sheet.get_all_values()
-            headers = all_records[0] if all_records else []
-            if headers:
-                prompt_to_use = build_dynamic_prompt(headers)
-            else:
-                prompt_to_use = PROMPT  # fallback ke prompt default
-        else:
-            prompt_to_use = PROMPT  # kalau belum pilih spreadsheet
-            
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": prompt_to_use},
-                        {"inlineData": {"mimeType": mime, "data": base64_str}},
-                    ]
-                }
-            ]
-        }
-        headers_req = {"Content-Type": "application/json"}
-        resp = requests.post(GEMINI_URL, headers=headers_req, data=json.dumps(payload))
-
-    if resp.status_code != 200:
-        st.error(f"❌ Gagal Analisa: {resp.text}")
+if uploaded_files:
+    if len(uploaded_files) > 5:
+        st.error("❌ Maksimal hanya 5 gambar yang boleh diupload.")
     else:
+        for f in uploaded_files:
+            st.image(f, caption=f"Formulir: {f.name}", use_column_width=True)
+
+if uploaded_files and st.button("🔍 Analisa Formulir"):
+    results_data = []
+
+    for uploaded_file in uploaded_files:
+        mime = "image/jpeg" if uploaded_file.type in ["image/jpg", "image/jpeg"] else "image/png"
+        base64_str = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
+
+        with st.spinner(f"Analisa {uploaded_file.name}..."):
+            # pilih prompt
+            if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
+                client = st.session_state.sheet_client
+                sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
+                all_records = sheet.get_all_values()
+                headers = all_records[0] if all_records else []
+                if headers:
+                    prompt_to_use = build_dynamic_prompt(headers)
+                else:
+                    prompt_to_use = PROMPT
+            else:
+                prompt_to_use = PROMPT
+
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt_to_use},
+                            {"inlineData": {"mimeType": mime, "data": base64_str}},
+                        ]
+                    }
+                ]
+            }
+            headers_req = {"Content-Type": "application/json"}
+            resp = requests.post(GEMINI_URL, headers=headers_req, data=json.dumps(payload))
+
+        if resp.status_code != 200:
+            st.error(f"❌ Gagal analisa {uploaded_file.name}: {resp.text}")
+            continue
+
         try:
             result = resp.json()
             output_text = result["candidates"][0]["content"]["parts"][0]["text"]
         except Exception:
             output_text = "ERROR: Response tidak sesuai format."
 
-        # -------------------------
-        # Analisa berdasarkan header kolom
-        # -------------------------
+        # parsing hasil ke dict
         rows = output_text.split("\n")
         data_dict = {}
         for row in rows:
@@ -263,31 +267,10 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                 key, value = row.split(": ", 1)
                 data_dict[key.strip()] = value.strip()
 
-        if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
-            try:
-                client = st.session_state.sheet_client
-                sheet = client.open_by_key(st.session_state.selected_spreadsheet["id"]).sheet1
-                all_records = sheet.get_all_values()
-                headers = all_records[0] if all_records else []
+        results_data.append(data_dict)
 
-                if headers:
-                    analyzed_text = "\n".join([f"{h}: {data_dict.get(h, '')}" for h in headers])
-                else:
-                    analyzed_text = output_text
-            except Exception as e:
-                analyzed_text = output_text + f"\n\n(⚠️ Gagal membaca header: {e})"
-        else:
-            analyzed_text = output_text
-
-        st.subheader("📌 Hasil Analisa")
-        st.text(analyzed_text)
-
-        # -------------------------
-        # Simpan ke Google Sheets
-        # -------------------------
-        if "ERROR" in output_text:
-            st.warning("⚠️ Data tidak bisa disimpan karena error analisa.")
-        else:
+        # Simpan ke Google Sheets per gambar
+        if "ERROR" not in output_text:
             if st.session_state.selected_spreadsheet and st.session_state.sheet_client:
                 try:
                     client = st.session_state.sheet_client
@@ -296,44 +279,29 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
                     headers = all_records[0] if all_records else []
                     unique_column = st.session_state.get("unique_column", None)
 
-                    if not headers:
-                        st.error("❌ Spreadsheet tidak memiliki header.")
-                    elif not unique_column or unique_column not in headers:
-                        st.error(f"❌ Kolom unik '{unique_column}' tidak ditemukan di spreadsheet!")
-                    else:
+                    if headers and unique_column in headers:
                         col_index = headers.index(unique_column)
                         values = [r[col_index] for r in all_records[1:]] if len(all_records) > 1 else []
-
-                        # Buat row baru sesuai urutan header
                         new_row = [data_dict.get(h, "") for h in headers]
-
                         key_value = data_dict.get(unique_column, "")
 
                         if key_value in values:
-                            row_index = values.index(key_value) + 2  # +2 karena ada header
+                            row_index = values.index(key_value) + 2
                             sheet.update(f"A{row_index}:{chr(64+len(headers))}{row_index}", [new_row])
-                            st.success(f"✅ Data dengan {unique_column} '{key_value}' berhasil DIUPDATE!")
+                            st.success(f"✅ Data {uploaded_file.name} berhasil diUPDATE!")
                         else:
                             sheet.append_row(new_row)
-                            st.success(f"✅ Data baru berhasil ditambahkan (kolom unik: {unique_column}).")
-
+                            st.success(f"✅ Data {uploaded_file.name} berhasil ditambahkan!")
                 except Exception as e:
-                    st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+                    st.error(f"❌ Gagal simpan {uploaded_file.name}: {e}")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # -------------------------
+    # Output
+    # -------------------------
+    st.subheader("📌 Hasil Analisa")
+    if len(results_data) == 1:
+        analyzed_text = "\n".join([f"{k}: {v}" for k, v in results_data[0].items()])
+        st.text(analyzed_text)
+    else:
+        df = pd.DataFrame(results_data)
+        st.dataframe(df, use_container_width=True)
