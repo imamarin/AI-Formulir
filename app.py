@@ -190,7 +190,16 @@ if auth_mode == "OAuth2 Login":
             include_granted_scopes="true",
             prompt="consent",
         )
-        st.sidebar.markdown(f"[🔐 Login dengan Google]({auth_url})")
+        # st.sidebar.markdown(f"[🔐 Login dengan Google]({auth_url})")
+        if st.button("Login dengan Google"):
+            st.markdown(
+                f"""
+                <script>
+                    window.location.href = "{auth_url}";
+                </script>
+                """,
+                unsafe_allow_html=True
+            )
 
 # -------------------------
 # Main App
@@ -307,6 +316,7 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
 
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+
 
 
 
