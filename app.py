@@ -212,8 +212,9 @@ if uploaded_files:
     if len(uploaded_files) > 5:
         st.error("❌ Maksimal hanya 5 gambar yang boleh diupload.")
     else:
-        for f in uploaded_files:
-            st.image(f, caption=f"Formulir: {f.name}", use_column_width=True)
+        if len(uploaded_files) == 1:
+            for f in uploaded_files:
+                st.image(f, caption=f"Formulir: {f.name}", use_column_width=True)
 
 if uploaded_files and st.button("🔍 Analisa Formulir"):
     results_data = []
@@ -305,3 +306,4 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
     else:
         df = pd.DataFrame(results_data)
         st.dataframe(df, use_container_width=True)
+
