@@ -208,7 +208,11 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True
 )
 
+# Reset flag kalau upload ulang
 if uploaded_files:
+    st.session_state.analysis_done = False
+    
+if uploaded_files and not st.session_state.get("analysis_done"):
     if len(uploaded_files) > 5:
         st.error("❌ Maksimal hanya 5 gambar yang boleh diupload.")
     else:
@@ -296,6 +300,9 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
                 except Exception as e:
                     st.error(f"❌ Gagal simpan {uploaded_file.name}: {e}")
 
+    # Set flag biar gambar hilang
+    st.session_state.analysis_done = True 
+    
     # -------------------------
     # Output
     # -------------------------
@@ -306,4 +313,5 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
     else:
         df = pd.DataFrame(results_data)
         st.dataframe(df, use_container_width=True)
+
 
