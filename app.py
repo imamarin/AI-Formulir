@@ -63,7 +63,8 @@ if "unique_column" not in st.session_state:
 # Sidebar: Pilih Mode Autentikasi
 # -------------------------
 st.sidebar.header("🔑 Google Sheets Authentication")
-auth_mode = st.sidebar.radio("Pilih metode login:", ["OAuth2 Login"])
+# auth_mode = st.sidebar.radio("Pilih metode login:", ["OAuth2 Login"])
+auth_mode = "OAuth2 Login"
 
 SHEET = None
 
@@ -192,7 +193,7 @@ if auth_mode == "OAuth2 Login":
         )
         # st.sidebar.markdown(f"[🔐 Login dengan Google]({auth_url})")
         if st.sidebar.button("Login dengan Google"):
-            st.sidebar.markdown(
+            st.markdown(
                 f"""
                 <script>
                     window.location.href = "{auth_url}";
@@ -316,6 +317,7 @@ if uploaded_file and st.button("🔍 Analisa Formulir"):
 
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan ke Google Sheet: {e}")
+
 
 
 
