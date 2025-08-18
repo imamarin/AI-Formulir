@@ -202,10 +202,15 @@ if auth_mode == "OAuth2 Login":
 # -------------------------
 st.title("📄 Kenan AI - Formulir Analyzer")
 
+# Tambah di atas untuk inisialisasi
+if "uploader_key" not in st.session_state:
+    st.session_state.uploader_key = 0
+    
 uploaded_files = st.file_uploader(
     "Upload hingga 5 gambar formulir (JPG/PNG)", 
     type=["jpg", "jpeg", "png"], 
-    accept_multiple_files=True
+    accept_multiple_files=True,
+    key=f"uploader_{st.session_state.uploader_key}"
 )
 
 # Reset flag kalau upload ulang
@@ -302,6 +307,9 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
 
     # Set flag biar gambar hilang
     st.session_state.analysis_done = True 
+
+    # Clear uploader → ganti key
+    st.session_state.uploader_key += 1 
     
     # -------------------------
     # Output
@@ -313,5 +321,6 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
     else:
         df = pd.DataFrame(results_data)
         st.dataframe(df, use_container_width=True)
+
 
 
