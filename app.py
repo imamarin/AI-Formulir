@@ -15,7 +15,9 @@ st.set_page_config(page_title="Kenan AI", page_icon="📄", layout="wide")
 # CSS untuk menyembunyikan logo GitHub (ikon kanan atas)
 hide_github_icon = """
     <style>
-        .stAppDeployButton {display: none;}
+        a[href*="github.com"] {
+            visibility: hidden;
+        }
     </style>
 """
 st.markdown(hide_github_icon, unsafe_allow_html=True)
@@ -331,6 +333,7 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
     else:
         df = pd.DataFrame(results_data)
         st.dataframe(df, use_container_width=True)
+
 
 
 
