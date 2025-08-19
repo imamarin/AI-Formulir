@@ -10,14 +10,6 @@ from googleapiclient.discovery import build
 import pickle
 import pandas as pd
 
-# CSS untuk menyembunyikan logo GitHub (ikon kanan atas)
-hide_github_icon = """
-    <style>
-        .stToolbarActions {visibility: hidden;}
-    </style>
-"""
-st.markdown(hide_github_icon, unsafe_allow_html=True)
-
 # -------------------------
 # Konfigurasi (secrets)
 # -------------------------
@@ -210,6 +202,14 @@ if auth_mode == "OAuth2 Login":
 # -------------------------
 st.title("📄 Kenan AI - Formulir Analyzer")
 
+# CSS untuk menyembunyikan logo GitHub (ikon kanan atas)
+hide_github_icon = """
+    <style>
+        .stToolbarActions {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_github_icon, unsafe_allow_html=True)
+
 # Insialisasi state
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
@@ -328,6 +328,7 @@ if uploaded_files and st.button("🔍 Analisa Formulir"):
     else:
         df = pd.DataFrame(results_data)
         st.dataframe(df, use_container_width=True)
+
 
 
 
